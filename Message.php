@@ -162,6 +162,11 @@ class Message extends BaseMessage
      */
     private $_finfo;
 
+    public $template = null;
+    public $params = null;
+    public $async = false;
+    public $send_at = null;
+
     /**
      * Mandrill does not let users set a charset.
      * 

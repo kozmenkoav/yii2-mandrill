@@ -107,12 +107,14 @@ class Mailer extends BaseMailer
      * @inheritdoc
      * @since 1.2.0
      */
-    public function compose($view = null, array $params = []) {
+    public function compose($view = null, array $params = [], $async = false, $send_at = null) {
         if ($this->useMandrillTemplates) {
             try {
-                $message = parent::compose();
-                $rendered = $this->_mandrill->templates->render($view, [], $this->getMergeParamsForMandrillTemplate($params));
-                $message->setHtmlBody($rendered['html']);
+                $message           = parent::compose();
+                $message->template = $view;
+                $message->params   = $params;
+                $message->async    = $async;
+                $message->send_at  = $send_at;
                 return $message;
             } catch (Mandrill_Error $e) {
                 \Yii::info('A mandrill error occurred: ' . get_class($e) . ' - ' . $e->getMessage(), self::LOG_CATEGORY);
@@ -135,7 +137,11 @@ class Mailer extends BaseMailer
         \Yii::info('Sending email "' . $message->getSubject() . '" to "' . $address . '"', self::LOG_CATEGORY);
 
         try {
-            return $this->wasMessageSentSuccesfully($this->_mandrill->messages->send($message->getMandrillMessageArray()));
+            if ($this->useMandrillTemplates) {
+                return $this->wasMessageSentSuccesfully($this->_mandrill->messages->sendTemplate($message->template, null, $message->getMandrillMessageArray(), $message->async, null, $message->send_at));
+            } else {
+                return $this->wasMessageSentSuccesfully($this->_mandrill->messages->send($message->getMandrillMessageArray()));
+            }
         } catch (Mandrill_Error $e) {
             \Yii::error('A mandrill error occurred: ' . get_class($e) . ' - ' . $e->getMessage(), self::LOG_CATEGORY);
             return false;
